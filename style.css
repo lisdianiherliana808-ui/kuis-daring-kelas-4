@@ -1,0 +1,77 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  background: linear-gradient(160deg, #6C5CE7 0%, #00B894 100%);
+  min-height: 100vh;
+  color: #2d3436;
+}
+.wrap {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #fdfdfe;
+  box-shadow: 0 0 30px rgba(0,0,0,.15);
+  display: flex;
+  flex-direction: column;
+}
+.screen { display: none; flex: 1; flex-direction: column; padding: 20px; }
+.screen.active { display: flex; }
+h1 { font-size: 1.5rem; text-align: center; margin: 10px 0 4px; }
+.subtitle { text-align: center; color: #636e72; margin-bottom: 18px; }
+.card { background: #fff; border-radius: 18px; padding: 16px; box-shadow: 0 4px 14px rgba(0,0,0,.08); margin-bottom: 14px; }
+.btn {
+  display: block; width: 100%; padding: 16px; margin: 8px 0;
+  font-size: 1.1rem; font-weight: 700; border: none; border-radius: 16px;
+  cursor: pointer; color: #fff; background: #6C5CE7;
+  box-shadow: 0 4px 0 #4834b0; transition: transform .05s;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #4834b0; }
+.btn:disabled { background: #b2bec3; box-shadow: 0 4px 0 #838687; cursor: not-allowed; }
+.btn.hijau { background: #00B894; box-shadow: 0 4px 0 #017a5f; }
+.btn.kuning { background: #fdcb6e; color: #6c4c00; box-shadow: 0 4px 0 #c79a3f; }
+.btn.merah { background: #e17055; box-shadow: 0 4px 0 #a94a34; }
+select#pilihNama {
+  width: 100%; padding: 16px; font-size: 1.1rem; border-radius: 16px;
+  border: 2px solid #dfe6e9; margin-bottom: 10px; background: #fff;
+}
+.opsi-btn {
+  display: block; width: 100%; text-align: left; padding: 14px 16px; margin: 8px 0;
+  font-size: 1rem; border-radius: 14px; border: 2px solid #dfe6e9; background: #fff;
+  cursor: pointer;
+}
+.opsi-btn.benar { background: #d1f7e8; border-color: #00B894; }
+.opsi-btn.salah { background: #ffe3de; border-color: #e17055; }
+.opsi-btn:disabled { opacity: .85; }
+.progress-bar { height: 8px; background: #dfe6e9; border-radius: 6px; overflow: hidden; margin-bottom: 14px; }
+.progress-bar > div { height: 100%; background: #00B894; transition: width .3s; }
+.feedback { border-radius: 16px; padding: 14px; margin: 12px 0; font-weight: 600; }
+.feedback.benar { background: #d1f7e8; color: #017a5f; }
+.feedback.salah { background: #ffe3de; color: #a94a34; }
+.materi-item { margin-bottom: 10px; line-height: 1.5; }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: .8rem; font-weight: 700; }
+.hasil-box { text-align: center; }
+.hasil-nilai { font-size: 2.2rem; font-weight: 800; color: #6C5CE7; }
+footer.small { text-align: center; color: #b2bec3; font-size: .75rem; padding: 10px; }
+
+/* ===== Dashboard guru ===== */
+.dg-wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.dg-login { max-width: 360px; margin: 60px auto; text-align: center; }
+.dg-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+@media (min-width: 700px) { .dg-stats { grid-template-columns: repeat(5, 1fr); } }
+.dg-stat { background: #fff; border-radius: 14px; padding: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.dg-stat .n { font-size: 1.6rem; font-weight: 800; }
+.dg-stat .l { font-size: .75rem; color: #636e72; }
+.dg-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.dg-controls input, .dg-controls select { padding: 10px; border-radius: 10px; border: 1px solid #dfe6e9; flex: 1; min-width: 160px; }
+table.dg-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; font-size: .85rem; }
+table.dg-table th, table.dg-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #f1f2f6; white-space: nowrap; }
+table.dg-table th { background: #f7f7fb; }
+table.dg-table tr:hover { background: #f7f7fb; cursor: pointer; }
+.dg-table-wrap { overflow-x: auto; }
+.dg-updated { color: #636e72; font-size: .8rem; margin: 8px 0; }
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+.modal-bg.active { display: flex; }
+.modal-box { background: #fff; border-radius: 16px; padding: 20px; max-width: 400px; width: 100%; }
+.modal-box h3 { margin-top: 0; }
+.modal-box .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f2f6; }

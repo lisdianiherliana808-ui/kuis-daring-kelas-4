@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Guru - Kuis Kelas 4</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body style="background:#f0f1f7;">
+
+<div id="loginBox" class="dg-login">
+  <h1>🔒 Dashboard Guru</h1>
+  <p>Masukkan password untuk melihat monitoring kuis.</p>
+  <input type="password" id="inputPassword" placeholder="Password" style="width:100%;padding:14px;border-radius:10px;border:1px solid #dfe6e9;margin-bottom:10px;">
+  <button class="btn" id="btnLogin">MASUK</button>
+  <p id="pesanLogin" style="color:#e17055;"></p>
+</div>
+
+<div id="dashboardBox" class="dg-wrap" style="display:none;">
+  <h1>📊 DASHBOARD MONITORING KUIS KELAS 4</h1>
+  <div class="dg-stats">
+    <div class="dg-stat"><div class="n" id="statTotal">0</div><div class="l">TOTAL SISWA</div></div>
+    <div class="dg-stat"><div class="n" id="statBelum">0</div><div class="l">BELUM MULAI</div></div>
+    <div class="dg-stat"><div class="n" id="statMengerjakan">0</div><div class="l">SEDANG MENGERJAKAN</div></div>
+    <div class="dg-stat"><div class="n" id="statSelesaiBindo">0</div><div class="l">SELESAI B. INDO</div></div>
+    <div class="dg-stat"><div class="n" id="statSelesaiSemua">0</div><div class="l">SELESAI SEMUA</div></div>
+  </div>
+
+  <div class="dg-controls">
+    <input type="text" id="cariNama" placeholder="Cari nama siswa...">
+    <select id="filterStatus">
+      <option value="semua">Semua</option>
+      <option value="belum">Belum mulai</option>
+      <option value="bindo">Sedang mengerjakan — Bahasa Indonesia</option>
+      <option value="selesaiBindo">Selesai Bahasa Indonesia</option>
+      <option value="ipas">Sedang mengerjakan — IPAS</option>
+      <option value="semuaSelesai">Selesai semua</option>
+    </select>
+  </div>
+  <p class="dg-updated" id="terakhirUpdate">Terakhir diperbarui: -</p>
+
+  <div class="dg-table-wrap">
+    <table class="dg-table">
+      <thead><tr>
+        <th>No</th><th>Nama</th><th>Status</th><th>Mapel</th>
+        <th>Nilai B.Indo</th><th>Nilai IPAS</th><th>Nilai Akhir</th><th>Aktivitas Terakhir</th>
+      </tr></thead>
+      <tbody id="tabelBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="data.js"></script>
+<script>
+/* ================= LOGIN ================= */
+if (sessionStorage.getItem('guru_login') === 'ok') masuk();
+document.getElementById('btnLogin').addEventListener('click', cobaLogin);
+document.getElementById('inputPassword').addEventListener('keydown', e => { if (e.key === 'Enter') cobaLogin(); });
+function cobaLogin() {
+  const v = document.getElementById('inputPassword').value;
+  if (v === GURU_PASSWORD) {
+    sessionStorage.setItem('guru_login', 'ok');
+    masuk();
+  } else {
+    document.getElementById('pesanLogin').textContent = "Password salah.";
+  }
+}
+function masuk() {
+  document.getElementById('loginBox').style.display = 'none';
+  document.getElementById('dashboardBox').style.display = 'block';
+  initFirebaseDanDashboard();
+}
+
+/* ================= DASHBOARD ================= */
+let dataSiswa = {}; // { docId: {...} }
+
+function initFirebaseDanDashboard() {
+  let db;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  } catch (e) {
+    document.getElementById('tabelBody').innerHTML =
+      '<tr><td colspan="8">Konfigurasi Firebase belum diisi dengan benar. Lihat README.md.</td></tr>';
+    return;
+  }
+  db.collection(KOLEKSI).onSnapshot(snap => {
+    snap.docChanges().forEach(ch => { dataSiswa[ch.doc.id] = ch.doc.data(); });
+    document.getElementById('terakhirUpdate').textContent =
+      "Terakhir diperbarui: " + new Date().toLocaleTimeString('id-ID');
+    render();
+  }, err => {
+    document.getElementById('tabelBody').innerHTML =
+      '<tr><td colspan="8">Gagal terhubung ke database: ' + err.code + '</td></tr>';
+  });
+  setInterval(render, 5000); // supaya status Aktif/Tidak aktif ikut ter-update walau tak ada data baru
+  document.getElementById('cariNama').addEventListener('input', render);
+  document.getElementById('filterStatus').addEventListener('change', render);
+}
+
+function slug(i) { return "siswa_" + String(i + 1).padStart(2, "0"); }
+
+function ambilSemuaSiswa() {
+  return STUDENT_LIST.map((nama, i) => {
+    const id = slug(i);
+    const d = dataSiswa[id] || {};
+    return {
+      no: i + 1, id, nama,
+      status: d.status || "Belum mulai",
+      mapelSekarang: d.mapelSekarang || "-",
+      nilaiBindo: (d.nilaiBindo ?? null),
+      nilaiIpas: (d.nilaiIpas ?? null),
+      nilaiAkhir: (d.nilaiAkhir ?? null),
+      waktuMulai: d.waktuMulai || null,
+      aktivitasTerakhir: d.aktivitasTerakhir || null,
+      waktuSelesai: d.waktuSelesai || null
+    };
+  });
+}
+
+function statusEmoji(s) {
+  if (s === "Belum mulai") return "⚪ Belum mulai";
+  if (s === "Sedang mengerjakan — Bahasa Indonesia") return "🟢 Sedang B. Indo";
+  if (s === "Selesai Bahasa Indonesia") return "🟡 Selesai B. Indo";
+  if (s === "Sedang mengerjakan — IPAS") return "🔵 Sedang IPAS";
+  if (s === "Selesai Semua") return "🟣 Selesai Semua";
+  return s;
+}
+function aktifKah(waktu) {
+  if (!waktu) return null;
+  return (Date.now() - waktu) / 1000 <= BATAS_AKTIF_DETIK;
+}
+function jamStr(waktu) {
+  if (!waktu) return "-";
+  return new Date(waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+}
+function nilaiStr(n) { return (n === null || n === undefined) ? "—" : n; }
+
+function render() {
+  const semua = ambilSemuaSiswa();
+  document.getElementById('statTotal').textContent = semua.length;
+  document.getElementById('statBelum').textContent = semua.filter(s => s.status === "Belum mulai").length;
+  document.getElementById('statMengerjakan').textContent = semua.filter(s =>
+    s.status === "Sedang mengerjakan — Bahasa Indonesia" || s.status === "Sedang mengerjakan — IPAS").length;
+  document.getElementById('statSelesaiBindo').textContent = semua.filter(s => s.status === "Selesai Bahasa Indonesia").length;
+  document.getElementById('statSelesaiSemua').textContent = semua.filter(s => s.status === "Selesai Semua").length;
+
+  const q = document.getElementById('cariNama').value.trim().toLowerCase();
+  const f = document.getElementById('filterStatus').value;
+  const mapFilter = { belum: "Belum mulai", bindo: "Sedang mengerjakan — Bahasa Indonesia",
+    selesaiBindo: "Selesai Bahasa Indonesia", ipas: "Sedang mengerjakan — IPAS", semuaSelesai: "Selesai Semua" };
+
+  const tampil = semua.filter(s => {
+    if (q && !s.nama.toLowerCase().includes(q)) return false;
+    if (f !== "semua" && s.status !== mapFilter[f]) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('tabelBody');
+  tbody.innerHTML = tampil.map(s => {
+    const aktif = aktifKah(s.aktivitasTerakhir);
+    let aktivitasHtml = "-";
+    if (s.aktivitasTerakhir) {
+      aktivitasHtml = (aktif === true ? "🟢 Aktif" : "⚪ Tidak aktif") + " (" + jamStr(s.aktivitasTerakhir) + ")";
+    }
+    return `<tr data-id="${s.id}">
+      <td>${s.no}</td><td>${s.nama}</td><td>${statusEmoji(s.status)}</td><td>${s.mapelSekarang}</td>
+      <td>${nilaiStr(s.nilaiBindo)}</td><td>${nilaiStr(s.nilaiIpas)}</td><td>${nilaiStr(s.nilaiAkhir)}</td>
+      <td>${aktivitasHtml}</td>
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('#tabelBody tr').forEach(tr => {
+    tr.addEventListener('click', () => bukaDetail(tr.dataset.id, semua));
+  });
+}
+
+function bukaDetail(id, semua) {
+  const s = semua.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('modalBox').innerHTML = `
+    <h3>${s.nama}</h3>
+    <div class="row"><span>Status</span><b>${statusEmoji(s.status)}</b></div>
+    <div class="row"><span>Mata pelajaran</span><b>${s.mapelSekarang}</b></div>
+    <div class="row"><span>Waktu mulai</span><b>${jamStr(s.waktuMulai)}</b></div>
+    <div class="row"><span>Aktivitas terakhir</span><b>${jamStr(s.aktivitasTerakhir)}</b></div>
+    <div class="row"><span>Nilai B. Indonesia</span><b>${nilaiStr(s.nilaiBindo)}</b></div>
+    <div class="row"><span>Nilai IPAS</span><b>${nilaiStr(s.nilaiIpas)}</b></div>
+    <div class="row"><span>Nilai akhir</span><b>${nilaiStr(s.nilaiAkhir)}</b></div>
+    <div class="row"><span>Waktu selesai</span><b>${jamStr(s.waktuSelesai)}</b></div>
+    <button class="btn" style="margin-top:14px;" onclick="document.getElementById('modalBg').classList.remove('active')">TUTUP</button>
+  `;
+  document.getElementById('modalBg').classList.add('active');
+}
+document.getElementById('modalBg').addEventListener('click', e => {
+  if (e.target.id === 'modalBg') e.target.classList.remove('active');
+});
+</script>
+</body>
+</html>

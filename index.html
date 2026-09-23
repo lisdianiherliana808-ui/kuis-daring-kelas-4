@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Kuis Belajar Kelas 4</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== SCREEN: PILIH NAMA ===== -->
+  <div id="screen-nama" class="screen active">
+    <h1>🎒 KUIS BELAJAR KELAS 4</h1>
+    <p class="subtitle">Siap untuk menguji kemampuanmu?</p>
+    <div class="card">
+      <label for="pilihNama"><b>Pilih namamu:</b></label>
+      <select id="pilihNama">
+        <option value="">-- Pilih nama --</option>
+      </select>
+    </div>
+    <button class="btn hijau" id="btnMulai" disabled>MULAI</button>
+    <p id="pesanNama" style="color:#e17055;text-align:center;"></p>
+  </div>
+
+  <!-- ===== SCREEN: MATERI ===== -->
+  <div id="screen-materi" class="screen">
+    <h1 id="materiJudul"></h1>
+    <div class="card" id="materiIsi"></div>
+    <button class="btn" id="btnMulaiSoal">MULAI SOAL</button>
+  </div>
+
+  <!-- ===== SCREEN: SOAL ===== -->
+  <div id="screen-soal" class="screen">
+    <div class="progress-bar"><div id="progressFill" style="width:0%"></div></div>
+    <p class="subtitle" id="soalInfo"></p>
+    <div class="card">
+      <p id="soalTeks" style="font-size:1.05rem;font-weight:600;"></p>
+      <div id="opsiWrap"></div>
+    </div>
+    <div id="feedbackWrap"></div>
+    <button class="btn kuning" id="btnLanjut" style="display:none;">LANJUT</button>
+  </div>
+
+  <!-- ===== SCREEN: TRANSISI ANTAR MAPEL ===== -->
+  <div id="screen-transisi" class="screen">
+    <div class="hasil-box card">
+      <p style="font-size:2rem;">🎉</p>
+      <h1 id="transisiJudul"></h1>
+      <p id="transisiTeks"></p>
+    </div>
+    <button class="btn hijau" id="btnLanjutMapel">LANJUT</button>
+  </div>
+
+  <!-- ===== SCREEN: HASIL ===== -->
+  <div id="screen-hasil" class="screen">
+    <div class="hasil-box">
+      <p style="font-size:2.5rem;">🎉</p>
+      <h1>KUIS SELESAI!</h1>
+      <p id="hasilNama" style="font-weight:700;"></p>
+      <div class="card">
+        <p>Bahasa Indonesia: <b id="hasilBindo"></b></p>
+        <p>IPAS: <b id="hasilIpas"></b></p>
+        <p>Nilai Akhir</p>
+        <p class="hasil-nilai" id="hasilAkhir"></p>
+      </div>
+      <p>Hebat! Kamu sudah menyelesaikan seluruh kuis.</p>
+    </div>
+    <button class="btn" id="btnCobaLagi">COBA LAGI</button>
+  </div>
+
+  <footer class="small">Kuis Belajar Kelas 4</footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="data.js"></script>
+<script>
+/* ================= INIT FIREBASE ================= */
+let db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+} catch (e) {
+  console.error("Firebase belum dikonfigurasi dengan benar:", e);
+}
+
+/* ================= STATE ================= */
+let idxSiswa = null;      // index di STUDENT_LIST
+let docId = null;
+let benarBindo = 0, benarIpas = 0;
+let nilaiBindoFinal = null;
+let soalSekarang = [];    // array soal mapel yang sedang berjalan
+let posisiSoal = 0;
+let mapelSekarang = "";   // "Bahasa Indonesia" | "IPAS"
+let heartbeatTimer = null;
+let sudahMenjawab = false;
+
+/* ================= UTIL ================= */
+function tampilkan(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function slug(i) { return "siswa_" + String(i + 1).padStart(2, "0"); }
+
+async function tulisData(data) {
+  if (!db || !docId) return;
+  try { await db.collection(KOLEKSI).doc(docId).set(data, { merge: true }); }
+  catch (e) { console.error("Gagal menyimpan data ke server:", e); }
+}
+function catatAktivitas(extra) {
+  tulisData(Object.assign({ aktivitasTerakhir: Date.now() }, extra || {}));
+}
+function mulaiHeartbeat() {
+  hentikanHeartbeat();
+  heartbeatTimer = setInterval(() => catatAktivitas(), 20000);
+}
+function hentikanHeartbeat() {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  heartbeatTimer = null;
+}
+
+/* ================= ISI DAFTAR NAMA ================= */
+const selNama = document.getElementById('pilihNama');
+STUDENT_LIST.forEach((nama, i) => {
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = nama;
+  selNama.appendChild(opt);
+});
+selNama.addEventListener('change', () => {
+  document.getElementById('btnMulai').disabled = (selNama.value === "");
+});
+
+/* ================= MULAI KUIS ================= */
+document.getElementById('btnMulai').addEventListener('click', async () => {
+  idxSiswa = parseInt(selNama.value, 10);
+  if (isNaN(idxSiswa)) return;
+  docId = slug(idxSiswa);
+  benarBindo = 0; benarIpas = 0;
+  await tulisData({
+    nama: STUDENT_LIST[idxSiswa],
+    status: "Sedang mengerjakan — Bahasa Indonesia",
+    mapelSekarang: "Bahasa Indonesia",
+    waktuMulai: Date.now(),
+    aktivitasTerakhir: Date.now(),
+    nilaiBindo: null, nilaiIpas: null, nilaiAkhir: null,
+    jumlahBenarBindo: null, jumlahBenarIpas: null,
+    waktuSelesai: null
+  });
+  mulaiHeartbeat();
+  tampilkanMateri("Bahasa Indonesia");
+});
+
+/* ================= MATERI ================= */
+function tampilkanMateri(mapel) {
+  mapelSekarang = mapel;
+  const m = (mapel === "Bahasa Indonesia") ? MATERI_BINDO : MATERI_IPAS;
+  document.getElementById('materiJudul').textContent = m.judul;
+  document.getElementById('materiIsi').innerHTML = m.isi.map(t => `<div class="materi-item">• ${t}</div>`).join('');
+  tampilkan('screen-materi');
+}
+document.getElementById('btnMulaiSoal').addEventListener('click', () => {
+  soalSekarang = (mapelSekarang === "Bahasa Indonesia") ? SOAL_BINDO : SOAL_IPAS;
+  posisiSoal = 0;
+  catatAktivitas({ mapelSekarang: mapelSekarang });
+  tampilkanSoal();
+});
+
+/* ================= SOAL ================= */
+function tampilkanSoal() {
+  sudahMenjawab = false;
+  const s = soalSekarang[posisiSoal];
+  document.getElementById('soalInfo').textContent =
+    mapelSekarang + " — Soal " + (posisiSoal + 1) + " dari " + soalSekarang.length;
+  document.getElementById('progressFill').style.width =
+    Math.round(((posisiSoal) / soalSekarang.length) * 100) + "%";
+  document.getElementById('soalTeks').textContent = s.soal;
+  const wrap = document.getElementById('opsiWrap');
+  wrap.innerHTML = "";
+  Object.keys(s.pilihan).forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'opsi-btn';
+    b.textContent = k.toUpperCase() + ". " + s.pilihan[k];
+    b.addEventListener('click', () => jawab(k, b));
+    wrap.appendChild(b);
+  });
+  document.getElementById('feedbackWrap').innerHTML = "";
+  document.getElementById('btnLanjut').style.display = "none";
+  tampilkan('screen-soal');
+}
+
+function jawab(pilihanDipilih, tombol) {
+  if (sudahMenjawab) return;
+  sudahMenjawab = true;
+  const s = soalSekarang[posisiSoal];
+  const benar = (pilihanDipilih === s.kunci);
+  document.querySelectorAll('.opsi-btn').forEach(btn => btn.disabled = true);
+  if (benar) {
+    tombol.classList.add('benar');
+    if (mapelSekarang === "Bahasa Indonesia") benarBindo++; else benarIpas++;
+  } else {
+    tombol.classList.add('salah');
+    document.querySelectorAll('.opsi-btn').forEach(btn => {
+      if (btn.textContent.startsWith(s.kunci.toUpperCase() + ".")) btn.classList.add('benar');
+    });
+  }
+  const fb = document.getElementById('feedbackWrap');
+  fb.innerHTML = benar
+    ? `<div class="feedback benar">🎉 Jawabanmu benar!<br>${s.penjelasan}</div>`
+    : `<div class="feedback salah">Belum tepat.<br>Jawaban yang benar: ${s.kunci.toUpperCase()}. ${s.pilihan[s.kunci]}<br>${s.penjelasan}</div>`;
+  document.getElementById('btnLanjut').style.display = "block";
+  catatAktivitas();
+}
+
+document.getElementById('btnLanjut').addEventListener('click', () => {
+  posisiSoal++;
+  if (posisiSoal < soalSekarang.length) {
+    tampilkanSoal();
+  } else {
+    selesaiMapel();
+  }
+});
+
+/* ================= SELESAI SATU MAPEL ================= */
+function selesaiMapel() {
+  if (mapelSekarang === "Bahasa Indonesia") {
+    nilaiBindoFinal = Math.round((benarBindo / SOAL_BINDO.length) * 100);
+    catatAktivitas({
+      status: "Selesai Bahasa Indonesia",
+      jumlahBenarBindo: benarBindo,
+      nilaiBindo: nilaiBindoFinal
+    });
+    document.getElementById('transisiJudul').textContent = "Bahasa Indonesia Selesai!";
+    document.getElementById('transisiTeks').textContent =
+      "Nilai kamu: " + nilaiBindoFinal + ". Sekarang lanjut ke IPAS ya!";
+    document.getElementById('btnLanjutMapel').onclick = () => {
+      catatAktivitas({ status: "Sedang mengerjakan — IPAS", mapelSekarang: "IPAS" });
+      tampilkanMateri("IPAS");
+    };
+    tampilkan('screen-transisi');
+  } else {
+    const nilaiIpasFinal = Math.round((benarIpas / SOAL_IPAS.length) * 100);
+    const nilaiAkhir = Math.round((nilaiBindoFinal + nilaiIpasFinal) / 2);
+    hentikanHeartbeat();
+    tulisData({
+      status: "Selesai Semua",
+      jumlahBenarIpas: benarIpas,
+      nilaiIpas: nilaiIpasFinal,
+      nilaiAkhir: nilaiAkhir,
+      waktuSelesai: Date.now(),
+      aktivitasTerakhir: Date.now(),
+      mapelSekarang: "-"
+    });
+    document.getElementById('hasilNama').textContent = STUDENT_LIST[idxSiswa];
+    document.getElementById('hasilBindo').textContent = nilaiBindoFinal;
+    document.getElementById('hasilIpas').textContent = nilaiIpasFinal;
+    document.getElementById('hasilAkhir').textContent = nilaiAkhir;
+    tampilkan('screen-hasil');
+  }
+}
+
+document.getElementById('btnCobaLagi').addEventListener('click', () => {
+  location.reload();
+});
+
+/* Catat saat siswa membuka aplikasi (jika sedang di tengah kuis dan reload halaman) */
+window.addEventListener('beforeunload', () => { if (docId) catatAktivitas(); });
+</script>
+</body>
+</html>
