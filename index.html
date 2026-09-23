@@ -266,5 +266,51 @@ document.getElementById('btnCobaLagi').addEventListener('click', () => {
 /* Catat saat siswa membuka aplikasi (jika sedang di tengah kuis dan reload halaman) */
 window.addEventListener('beforeunload', () => { if (docId) catatAktivitas(); });
 </script>
+  <script>
+(function () {
+  const mulai = new Date('2026-09-24T08:00:00+07:00').getTime();
+  const selesai = new Date('2026-09-24T23:59:59+07:00').getTime();
+  const sekarang = Date.now();
+
+  if (sekarang < mulai || sekarang > selesai) {
+    document.body.innerHTML = `
+      <div style="
+        min-height:100vh;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        text-align:center;
+        padding:30px;
+        font-family:Arial,sans-serif;
+        background:#f5f7ff;
+      ">
+        <div style="
+          background:white;
+          padding:35px 25px;
+          border-radius:25px;
+          max-width:500px;
+          box-shadow:0 10px 30px rgba(0,0,0,.1);
+        ">
+          <div style="font-size:55px;">
+            ${sekarang < mulai ? '⏰' : '🔒'}
+          </div>
+
+          <h2 style="margin:15px 0 10px;">
+            ${sekarang < mulai ? 'Kuis Belum Dibuka' : 'Kuis Sudah Ditutup'}
+          </h2>
+
+          <p style="font-size:16px;line-height:1.6;">
+            ${
+              sekarang < mulai
+                ? 'Kuis akan dibuka pada Kamis, 24 September 2026 pukul 08.00 WIB.'
+                : 'Waktu pengerjaan kuis sudah berakhir. Terima kasih sudah mengikuti kuis.'
+            }
+          </p>
+        </div>
+      </div>
+    `;
+  }
+})();
+</script>
 </body>
 </html>
