@@ -135,7 +135,7 @@ const SOAL_BINDO = [
   { soal: "Simbol berbentuk kotak pada denah biasanya menggambarkan...", pilihan: { a: "Sungai", b: "Jalan", c: "Bangunan atau rumah", d: "Gunung" }, kunci: "c", penjelasan: "Kotak pada denah umumnya melambangkan bangunan atau rumah." },
   { soal: "Garis panjang pada denah biasanya menggambarkan...", pilihan: { a: "Jalan", b: "Lapangan", c: "Pohon", d: "Kolam" }, kunci: "a", penjelasan: "Garis panjang pada denah umumnya menggambarkan jalan." },
   { soal: "Sebelum membaca denah, hal pertama yang perlu diperhatikan adalah...", pilihan: { a: "Warna denah", b: "Judul dan legenda (keterangan simbol) denah", c: "Ukuran kertas", d: "Nama pembuat denah" }, kunci: "b", penjelasan: "Judul dan legenda membantu kita memahami isi denah sebelum membacanya lebih lanjut." },
-  { soal: "Jika sekolah berada di sebelah utara pasar, maka posisi pasar terhadap sekolah adalah di sebelah...", pilihan: { a: "Utara", b: "Selatan", c: "Timur", d: "Barat" }, kunci: "b", penjelasan: "Jika sekolah di utara pasar, maka pasar berada di selatan sekolah." },
+  { soal: "Jika sekolah berada di sebelah utara pasar, maka pasar berada disebelah ... sekolah", pilihan: { a: "Utara", b: "Selatan", c: "Timur", d: "Barat" }, kunci: "b", penjelasan: "Jika sekolah di utara pasar, maka pasar berada di selatan sekolah." },
   { soal: "Kalimat \"Dari rumah, jalan lurus ke timur lalu belok kiri di perempatan\" adalah contoh dari...", pilihan: { a: "Judul denah", b: "Petunjuk arah", c: "Legenda denah", d: "Skala denah" }, kunci: "b", penjelasan: "Kalimat tersebut menjelaskan cara menuju suatu tempat, sehingga disebut petunjuk arah." }
 ];
 
